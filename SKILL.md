@@ -9,6 +9,7 @@ allowed-tools:
   - Bash
   - AskUserQuestion
   - automation_update
+  - present_files
 license: Internal
 disable: false
 ---
