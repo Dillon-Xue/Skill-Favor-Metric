@@ -3,6 +3,7 @@ import os
 import json
 import argparse
 import shutil
+from datetime import datetime, timezone, timedelta
 from common import snapshots_path
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -11,6 +12,16 @@ VENDOR_ECHARTS = os.path.join(SCRIPT_DIR, "..", "vendor", "echarts.min.js")
 
 def esc(x):
     return (str(x).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+
+_BJ = timezone(timedelta(hours=8))
+
+
+def fmt_ts(ms):
+    try:
+        return datetime.fromtimestamp(int(ms) / 1000, _BJ).strftime("%Y-%m-%d %H:%M")
+    except Exception:
+        return "-"
 
 
 TEMPLATE = """<!doctype html>
@@ -38,7 +49,7 @@ TEMPLATE = """<!doctype html>
 <div class="card">
   <div style="font-weight:600;margin-bottom:10px;">每 Skill 当前数据（最新快照）</div>
   <table>
-    <thead><tr><th>名称</th><th>slug</th><th>分类</th><th>下载</th><th>安装</th><th>星标</th><th>版本</th><th>审核</th><th>安全扫描</th></tr></thead>
+    <thead><tr><th>名称</th><th>slug</th><th>分类</th><th>下载</th><th>安装</th><th>星标</th><th>版本</th><th>更新时间</th></tr></thead>
     <tbody>__ROWS__</tbody>
   </table>
 </div>
@@ -53,9 +64,9 @@ chart.setOption({
   xAxis:{type:'category',data:D.dates,axisLine:{lineStyle:{color:'#444'}}},
   yAxis:{type:'value',axisLine:{lineStyle:{color:'#444'}}},
   series:[
-    {name:'下载量',type:'line',smooth:true,data:D.downloads,itemStyle:{color:'#ef4444'}},
-    {name:'安装数',type:'line',smooth:true,data:D.installs,itemStyle:{color:'#22c55e'}},
-    {name:'星标',type:'line',smooth:true,data:D.stars,itemStyle:{color:'#3b82f6'}}
+    {name:'下载量',type:'line',smooth:true,data:D.downloads,itemStyle:{color:'#ef4444'},label:{show:true,position:'top',fontSize:11,color:'#ef4444'}},
+    {name:'安装数',type:'line',smooth:true,data:D.installs,itemStyle:{color:'#22c55e'},label:{show:true,position:'top',fontSize:11,color:'#22c55e'}},
+    {name:'星标',type:'line',smooth:true,data:D.stars,itemStyle:{color:'#3b82f6'},label:{show:true,position:'top',fontSize:11,color:'#3b82f6'}}
   ]
 });
 window.addEventListener('resize', function(){ chart.resize(); });
@@ -68,14 +79,12 @@ window.addEventListener('resize', function(){ chart.resize(); });
 def build_html(dates, dl, ins, st, skills, latest_date):
     rows = ""
     for s in skills:
-        sec = s.get("security") or {}
-        sec_txt = "keen:%s / sanbu:%s" % (sec.get("keen") or "-", sec.get("sanbu") or "-")
         rows += (
             "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>"
-            "<td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (
+            "<td>%s</td><td>%s</td><td>%s</td></tr>" % (
                 esc(s.get("name")), esc(s.get("slug")), esc(s.get("category")),
                 s.get("downloads"), s.get("installs"), s.get("stars"),
-                esc(s.get("version")), esc(s.get("reviewStatus")), esc(sec_txt),
+                esc(s.get("version")), esc(fmt_ts(s.get("updatedAt"))),
             )
         )
     data_json = json.dumps({

@@ -70,7 +70,7 @@ python <skill_dir>/scripts/report.py
 ```
 生成自包含 HTML 看板（离线可用，内置 echarts）：
 - **趋势折线图**：x 轴为日期，三条线 = 每日全部已发布 skill 的 `downloads / installs / stars` 各自**求和**；
-- **每 skill 明细表**：取**最新一次快照**中每个 skill 的当前数据（名称、slug、分类、三项指标、版本、审核状态、安全扫描结果）。
+- **每 skill 明细表**：取**最新一次快照**中每个 skill 的当前数据（名称、slug、分类、三项指标、版本、更新时间）。
 
 把生成的 HTML 路径回显给用户（可用 present_files 打开预览）。
 

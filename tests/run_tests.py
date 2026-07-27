@@ -190,6 +190,9 @@ rr = run_report(tmp10, out_html)
 html = open(out_html).read()
 check("report_multiday_dates", '"dates":["2026-07-25","2026-07-26","2026-07-27"]' in html, "dates mismatch")
 check("report_multiday_downloads", '"downloads":[5,8,12]' in html, "downloads mismatch")
+check("report_col_updatetime", "<th>更新时间</th>" in html, "明细表缺少更新时间列")
+check("report_no_audit_col", "<th>审核</th>" not in html, "明细表不应再含审核列")
+check("report_no_security_col", "<th>安全扫描</th>" not in html, "明细表不应再含安全扫描列")
 
 # 用例 11：report 无数据
 tmp11 = tempfile.mkdtemp()
