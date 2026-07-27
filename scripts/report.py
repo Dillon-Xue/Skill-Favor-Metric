@@ -2,6 +2,7 @@ import sys
 import os
 import json
 import math
+import webbrowser
 import argparse
 from datetime import datetime, timezone, timedelta
 from common import snapshots_path
@@ -182,6 +183,12 @@ def main():
         "dates": dates,
         "skillCount": len(skills),
     }, ensure_ascii=False))
+
+    # 自动用系统默认浏览器打开报告，确保用户一定能看到（不依赖 AI 调 present_files）
+    try:
+        webbrowser.open("file://" + os.path.abspath(out))
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":
