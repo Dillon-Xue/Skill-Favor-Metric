@@ -114,8 +114,10 @@ python <skill_dir>/scripts/report.py
 - **趋势折线图**：x 轴为日期，三条线 = 每日全部已发布 skill 的 `downloads / installs / stars` 各自**求和**；每个数据点默认显示数值标签；
 - **每 skill 明细表**：取**最新一次快照**中每个 skill 的当前数据（名称、slug、分类、三项指标、版本、更新时间）。
 
-**对话中：**
-执行 report.py 后把生成的 HTML 路径通过 `present_files` 回显给用户，自动打开预览面板。
+**对话中（必须执行）：**
+1. 执行 `report.py` 生成 HTML。
+2. **必须**调用 `present_files` 将生成的 HTML 绝对路径回显给用户（自动打开预览面板）。这是本步骤的**强制性输出**，不可省略。
+3. 在文字回复中一并给出 HTML 的绝对路径（如 `C:\Users\dillon\.workbuddy\skillhub-stats\report.html`），方便用户后续自行打开或转发。
 
 ### 第 3 步（可选）：开启每日自动采集
 
