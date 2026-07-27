@@ -2,12 +2,31 @@ import sys
 import os
 import json
 import argparse
-import shutil
 from datetime import datetime, timezone, timedelta
 from common import snapshots_path
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 VENDOR_ECHARTS = os.path.join(SCRIPT_DIR, "..", "vendor", "echarts.min.js")
+
+def load_echarts():
+    """读取 vendor/echarts.min.js 并内联进 HTML，保证报告完全自包含、离线可渲染。"""
+    try:
+        with open(VENDOR_ECHARTS, "r", encoding="utf-8") as f:
+            js = f.read()
+        return js.replace("</script>", "<\/script>")
+    except Exception:
+        return ""
+
+
+def load_echarts():
+    """读取 vendor/echarts.min.js 并内联进 HTML，保证报告完全自包含、离线可渲染。"""
+    try:
+        with open(VENDOR_ECHARTS, "r", encoding="utf-8") as f:
+            js = f.read()
+        # 防止内联 JS 中的 </script> 提前闭合外层 script 标签
+        return js.replace("</script>", "<\\/script>")
+    except Exception:
+        return ""
 
 
 def esc(x):
@@ -30,7 +49,7 @@ TEMPLATE = """<!doctype html>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Skill Favor Metric 看板</title>
-<script src="./echarts.min.js"></script>
+<script>__ECHARTS__</script>
 <style>
   body{background:#0f1115;color:#e6e6e6;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;padding:24px;}
   h1{font-size:20px;margin:0 0 4px;}
@@ -129,15 +148,8 @@ def main():
     out_dir = os.path.dirname(os.path.abspath(out))
     os.makedirs(out_dir, exist_ok=True)
 
-    # 复制 echarts 到输出目录，保证离线自包含
-    try:
-        dst = os.path.join(out_dir, "echarts.min.js")
-        if os.path.exists(VENDOR_ECHARTS):
-            shutil.copyfile(VENDOR_ECHARTS, dst)
-    except Exception:
-        pass
-
     html = build_html(dates, dl, ins, st, skills, latest.get("date"))
+    html = html.replace("__ECHARTS__", load_echarts())
     with open(out, "w", encoding="utf-8") as f:
         f.write(html)
     print(json.dumps({
