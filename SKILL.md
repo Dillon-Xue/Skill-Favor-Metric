@@ -8,7 +8,6 @@ allowed-tools:
   - Glob
   - Bash
   - AskUserQuestion
-  - web-access
   - automation_update
 license: Internal
 disable: false
@@ -19,7 +18,7 @@ disable: false
 帮你把 SkillHub 后台「我发布的 skill」列表里的下载量 / 安装数 / 星标拉到本地，按天存快照、画趋势图、列明细，并支持每日自动采集与重新授权。
 
 ## 数据从哪来
-通过 SkillHub 后台接口 `https://api.skillhub.cn/api/v1/dashboard/skills` 获取（与你 F12 看到的完全一致）。接口需要登录态 Cookie（`skh_token` + `sid`），因此**首次使用必须授权**。
+通过 SkillHub 后台接口 `https://api.skillhub.cn/api/v1/dashboard/skills` 获取（与你 F12 看到的完全一致）。鉴权使用**官方 API Token（PAT，`skh_xxx` 格式）**，以 `Authorization: Bearer <PAT>` 发送——这是 SkillHub 给程序用的「机器人凭证」，比抠浏览器 Cookie 更稳、更长久、无浏览器封号风险。（浏览器 Cookie 鉴权作为兜底仍支持。）
 
 ## 存储位置（刻意放在 skill 目录之外，避免更新/重装被清）
 - 数据快照：`~/.workbuddy/skillhub-stats/snapshots.json`
@@ -35,17 +34,18 @@ python <skill_dir>/scripts/auth.py --check
 - 返回 `OK` → 进入第 1 步。
 - 返回 `MISSING` 或 `EXPIRED` → 进入「授权流程」。
 
-### 授权流程（用户自行登录，不硬编码任何身份）
-1. 用 `web-access` 打开 `https://skillhub.cn`（登录页），**请用户在自己浏览器里登录**。
-2. 登录后，请用户按 F12 → Network → 复制任意一个 `api.skillhub.cn` 请求的 **Cookie 请求头整段文本**，粘贴给你。
-3. 收到后写入凭证文件：
+### 授权流程（官方 API Token，无需驱动浏览器）
+1. 请用户去 SkillHub 网页端 **个人中心 → API keys**（`https://skillhub.cn/dashboard/keys`）创建一把 **API Token**（`skh_xxx` 格式），一次性复制保存。
+2. 用户把 `skh_xxx` 那串发给你后，写入凭证文件：
 ```
-python <skill_dir>/scripts/auth.py --import-cookie-file <用户给的cookie文本保存到的临时文件>
+python <skill_dir>/scripts/auth.py --import-pat <skh_xxx>
 ```
-（也可用 `--stdin` 从标准输入读。）
-4. 再次 `--check` 确认 `OK`。
+（也可用 `--import-pat-stdin` 从标准输入读，避免 token 出现在命令行参数里。）
+3. 再次 `--check` 确认 `OK (PAT)`。
 
-> 安全：凭证只存本机 `~/.workbuddy/skillhub-stats/credentials.json`，不写进 skill 目录、不提交 git。任何人都不要把它贴进对话或仓库。
+> 兜底方案（仅在 PAT 不可用时的极少数情况）：用户按 F12 复制任意 `api.skillhub.cn` 请求的 **Cookie 请求头整段文本**，用 `auth.py --import-cookie-file <文件>` 写入。
+
+> 安全：凭证只存本机 `~/.workbuddy/skillhub-stats/credentials.json`（权限 600 / Windows 仅当前用户可读写），不写进 skill 目录、不提交 git。token 不要贴进对话或仓库（本会话已按此处理）。
 
 ### 第 1 步：采集今日快照
 ```
@@ -58,7 +58,7 @@ python <skill_dir>/scripts/fetch.py
 - 输出 JSON 摘要（日期、总量、skill 数、快照路径）。
 
 失败处理（退出码非 0，错误信息同时打到 stderr）：
-- `AUTH_EXPIRED`：token 失效 → 用 `web-access` 打开 `https://skillhub.cn` 并提示用户重新授权，然后重跑一次采集。
+- `AUTH_EXPIRED`：凭证缺失或失效 → 提示用户重新走「授权流程」生成新 PAT，然后重跑一次采集。
 - `FETCH_ERROR`：网络/超时 → 提示稍后重试。
 - `PARSE_ERROR`：返回结构异常 → 提示接口可能变更。
 
@@ -88,5 +88,5 @@ automation_update(mode="create",
 
 ## 已知限制
 - `installs` / `stars` 当前多为 0，对应折线初期会是平地，有数据后自动显示。
-- token 有效期约 7 天，过期后自动采集会失败并提示重新授权（非 bug，是预期的重授权机制）。
+- 官方 API Token（PAT）无过期时间，仅可手动在 `dashboard/keys` 撤销；撤销后自动采集会失败并提示重新授权（非 bug，是预期的重授权机制）。
 - 接口为后台内部接口，字段可能变更；`PARSE_ERROR` 即信号。

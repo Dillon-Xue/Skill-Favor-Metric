@@ -5,7 +5,7 @@ import json
 import argparse
 import urllib.error
 from common import (snapshots_path, load_credentials, is_expired,
-                    http_get_json, today_key)
+                    http_get_json, auth_headers, today_key)
 
 API_BASE = "https://api.skillhub.cn"
 ENDPOINT = "/api/v1/dashboard/skills"
@@ -36,7 +36,7 @@ def main():
     if not cred or is_expired(cred):
         fail("AUTH_EXPIRED", "凭证缺失或已过期，请重新授权（运行 scripts/auth.py --check 查看指引）。")
 
-    cookie = "language=zh; skh_token=%s; sid=%s" % (cred.get("skh_token", ""), cred.get("sid", ""))
+    auth_mode = "PAT(Bearer)" if cred.get("pat") else "Cookie"
 
     all_skills = []
     page_info = []
@@ -45,7 +45,7 @@ def main():
     while True:
         url = "%s%s?page=%d&pageSize=%d" % (args.api_base, ENDPOINT, page, args.page_size)
         try:
-            code, text = http_get_json(url, cookie, timeout=args.timeout)
+            code, text = http_get_json(url, auth_headers(cred), timeout=args.timeout)
         except urllib.error.HTTPError as e:
             if e.code in (401, 403):
                 fail("AUTH_EXPIRED", "接口返回 %d，token 已失效，请重新授权。" % e.code)
@@ -139,6 +139,7 @@ def main():
         "totals": totals,
         "skillCount": len(clean),
         "diagnostics": {
+            "authMode": auth_mode,
             "totalDeclared": total,
             "collected": len(all_skills),
             "pages": len(page_info),

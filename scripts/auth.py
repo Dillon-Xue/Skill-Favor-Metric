@@ -8,6 +8,8 @@ from common import (cred_path, load_credentials, save_credentials,
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true", help="检查凭证是否存在且未过期")
+    ap.add_argument("--import-pat", default=None, help="保存官方 API Token（skh_xxx 格式），使用 Bearer 鉴权")
+    ap.add_argument("--import-pat-stdin", action="store_true", help="从标准输入读取 PAT 文本")
     ap.add_argument("--import-cookie-file", default=None, help="从文件读取 Cookie 请求头文本并保存")
     ap.add_argument("--stdin", action="store_true", help="从标准输入读取 Cookie 请求头文本")
     ap.add_argument("--data-dir", default=None)
@@ -21,9 +23,24 @@ def main():
         if is_expired(cred):
             print("EXPIRED")
             sys.exit(4)
-        print("OK")
+        mode = "PAT" if cred.get("pat") else "COOKIE"
+        print("OK (%s)" % mode)
         sys.exit(0)
 
+    # PAT 模式：官方 API Token，Bearer 鉴权
+    pat = args.import_pat
+    if args.import_pat_stdin:
+        pat = sys.stdin.read().strip()
+    if pat:
+        pat = pat.strip()
+        if not pat.startswith("skh_"):
+            print("ERROR: PAT 格式异常，应以 skh_ 开头", file=sys.stderr)
+            sys.exit(1)
+        p = save_credentials(pat=pat, custom=args.data_dir)
+        print(json.dumps({"status": "ok", "authMode": "PAT", "credPath": p}, ensure_ascii=False))
+        sys.exit(0)
+
+    # Cookie 模式（兜底）
     raw = None
     if args.import_cookie_file:
         with open(args.import_cookie_file, "r", encoding="utf-8") as f:
@@ -32,15 +49,15 @@ def main():
         raw = sys.stdin.read()
 
     if not raw:
-        print("ERROR: 未提供 cookie 文本（用 --import-cookie-file 或 --stdin）", file=sys.stderr)
+        print("ERROR: 未提供凭证（用 --import-pat / --import-cookie-file / --stdin）", file=sys.stderr)
         sys.exit(1)
 
     skh, sid = parse_cookie(raw)
     if not skh or not sid:
         print("ERROR: 无法从文本中解析出 skh_token / sid", file=sys.stderr)
         sys.exit(1)
-    p = save_credentials(skh, sid, args.data_dir)
-    print(json.dumps({"status": "ok", "credPath": p}, ensure_ascii=False))
+    p = save_credentials(skh_token=skh, sid=sid, custom=args.data_dir)
+    print(json.dumps({"status": "ok", "authMode": "COOKIE", "credPath": p}, ensure_ascii=False))
 
 
 if __name__ == "__main__":

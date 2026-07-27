@@ -13,7 +13,7 @@
   - 趋势折线图：x 轴为日期，三条线 = 每日全部 skill 的下载量 / 安装数 / 星标各自求和；
   - 每 skill 明细表：最新一次快照中每个 skill 的当前数据。
 - **自动采集**：支持用 WorkBuddy 自动化做每日定时采集；未设置则只在手动触发当天记录。
-- **到期重授权**：token 约 7 天过期，过期后采集失败并明确提示重新授权。
+- **到期重授权**：官方 API Token（PAT）无过期时间，仅可手动撤销；撤销后采集失败并明确提示重新授权。
 
 ## 安装
 
@@ -25,18 +25,19 @@
 
 ## 首次授权（必须）
 
-接口需要登录态 Cookie（`skh_token` + `sid`），且**不硬编码任何身份**——由使用者自己登录后提供。
+鉴权使用 **SkillHub 官方 API Token（PAT，`skh_xxx` 格式）**，以 `Authorization: Bearer <PAT>` 发送——这是平台给程序用的「机器人凭证」，**不硬编码任何身份**，由使用者自己在网页端生成。
 
-1. 用 `web-access` 打开 `https://skillhub.cn` 并登录（或你已在浏览器登录）。
-2. 登录后按 F12 → Network → 复制任意一个 `api.skillhub.cn` 请求的 **Cookie 请求头整段文本**，存成文件（如 `cookie.txt`）。
-3. 写入凭证：
+1. 前往 SkillHub 网页端 **个人中心 → API keys**（`https://skillhub.cn/dashboard/keys`）创建一把 API Token（`skh_xxx` 格式），一次性复制保存。
+2. 写入凭证：
 
 ```bash
-python <skill_dir>/scripts/auth.py --import-cookie-file cookie.txt
-# 或： echo "<cookie文本>" | python <skill_dir>/scripts/auth.py --stdin
+python <skill_dir>/scripts/auth.py --import-pat <skh_xxx>
+# 或： echo "<skh_xxx>" | python <skill_dir>/scripts/auth.py --import-pat-stdin
 ```
 
-4. 校验：`python <skill_dir>/scripts/auth.py --check` 应返回 `OK`。
+3. 校验：`python <skill_dir>/scripts/auth.py --check` 应返回 `OK (PAT)`。
+
+> 兜底方案（仅在 PAT 不可用时的极少数情况）：按 F12 复制任意 `api.skillhub.cn` 请求的 Cookie 请求头整段文本，用 `auth.py --import-cookie-file <文件>` 写入（浏览器 Cookie 鉴权仍被支持）。
 
 ## 日常使用
 
@@ -70,7 +71,7 @@ python <skill_dir>/scripts/report.py
 ## 已知限制
 
 - `installs` / `stars` 当前多为 0，对应折线初期是平地，有数据后自动显示。
-- token 有效期约 7 天，过期后自动采集会失败并提示重新授权（这是预期的重授权机制，不是 bug）。
+- 官方 API Token（PAT）无过期时间，仅可手动在 `dashboard/keys` 撤销；撤销后自动采集会失败并提示重新授权（这是预期的重授权机制，不是 bug）。
 - 后台接口为内部接口，字段可能变更；`PARSE_ERROR` 即信号。
 
 ## 测试

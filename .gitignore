@@ -2,3 +2,7 @@ __pycache__/
 *.pyc
 .DS_Store
 *.tmp
+# 运行期数据（含凭证，绝不进 git）
+credentials.json
+snapshots.json
+report.html
