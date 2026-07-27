@@ -190,5 +190,23 @@ tmp11 = tempfile.mkdtemp()
 rr = run_report(tmp11, os.path.join(tmp11, "report.html"))
 check("report_no_data", rr.returncode == 1, "expected fail")
 
+# 用例 12：接口钳制 pageSize（请求 50 实际每页 10，total=13，必须翻 2 页取全）
+# 这是复现"数据比后台少"的根因回归用例：修复前只取前 10 条，修复后取全 13 条。
+tmp12 = tempfile.mkdtemp()
+seed_creds(tmp12)
+p = start_mock("clamped", 8105)
+try:
+    r = run_fetch(tmp12, "http://127.0.0.1:8105")  # 默认 --page-size=50
+    out = json.loads(r.stdout) if r.returncode == 0 else {}
+    snaps = json.load(open(os.path.join(tmp12, "snapshots.json")))
+    today = list(snaps.values())[0]
+    diag = out.get("diagnostics", {})
+    check("clamped_collects_all_13", today["skillCount"] == 13, "got %s" % today["skillCount"])
+    check("clamped_fully_collected", diag.get("fullyCollected") is True, diag)
+    check("clamped_two_pages", diag.get("pages") == 2, diag)
+    check("clamped_perpage_10_3", diag.get("perPageCounts") == [10, 3], diag)
+finally:
+    p.terminate()
+
 print("\n=== %d passed, %d failed ===" % (passed, failed))
 sys.exit(1 if failed else 0)

@@ -39,6 +39,7 @@ def main():
     cookie = "language=zh; skh_token=%s; sid=%s" % (cred.get("skh_token", ""), cred.get("sid", ""))
 
     all_skills = []
+    page_info = []
     page = 1
     total = None
     while True:
@@ -67,12 +68,15 @@ def main():
         if total is None:
             total = data.get("total", len(skills))
         all_skills.extend(skills)
+        page_info.append(len(skills))
 
         if not skills:
             break
         if total is not None and len(all_skills) >= total:
             break
-        if len(skills) < args.page_size:
+        # 末页信号：本页返回数 < 请求 pageSize。但若 total 已知且仍未取满，说明接口钳制了
+        # pageSize（如请求 50 实际每页只回 10），此时不能提前终止，必须继续翻页取全。
+        if len(skills) < args.page_size and not (total is not None and len(all_skills) < total):
             break
         page += 1
         if page > 1000:
@@ -134,6 +138,14 @@ def main():
         "date": snap["date"],
         "totals": totals,
         "skillCount": len(clean),
+        "diagnostics": {
+            "totalDeclared": total,
+            "collected": len(all_skills),
+            "pages": len(page_info),
+            "perPageCounts": page_info,
+            "pageSizeRequested": args.page_size,
+            "fullyCollected": (total is None) or (len(all_skills) >= total),
+        },
         "snapshotPath": sp,
     }, ensure_ascii=False))
 

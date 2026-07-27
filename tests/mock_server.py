@@ -51,6 +51,21 @@ class H(BaseHTTPRequestHandler):
         if MODE == "slow":
             time.sleep(25)
             return
+        if MODE == "clamped":
+            # 模拟 skillhub 后端钳制 pageSize：忽略客户端请求的 page_size，强制每页最多 10 条
+            qs = parse_qs(urlparse(self.path).query)
+            page = int(qs.get("page", ["1"])[0])
+            ps = 10
+            start = (page - 1) * ps
+            end = start + ps
+            slice_ = ALL[start:end]
+            body = json.dumps({"skills": slice_, "total": len(ALL)}).encode("utf-8")
+            self.send_response(200)
+            self.send_header("content-type", "application/json")
+            self.send_header("content-length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         qs = parse_qs(urlparse(self.path).query)
         page = int(qs.get("page", ["1"])[0])
         ps = int(qs.get("pageSize", ["50"])[0])
