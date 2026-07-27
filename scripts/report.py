@@ -13,16 +13,6 @@ def load_echarts():
     try:
         with open(VENDOR_ECHARTS, "r", encoding="utf-8") as f:
             js = f.read()
-        return js.replace("</script>", "<\/script>")
-    except Exception:
-        return ""
-
-
-def load_echarts():
-    """读取 vendor/echarts.min.js 并内联进 HTML，保证报告完全自包含、离线可渲染。"""
-    try:
-        with open(VENDOR_ECHARTS, "r", encoding="utf-8") as f:
-            js = f.read()
         # 防止内联 JS 中的 </script> 提前闭合外层 script 标签
         return js.replace("</script>", "<\\/script>")
     except Exception:
